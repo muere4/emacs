@@ -2,8 +2,9 @@
 ;;; Commentary:
 ;;; Code:
 
-(add-to-list 'load-path "~/.emacs.d/muere/core")
+(add-to-list 'load-path "~/.config/emacs/muere/core")
 (require 'muere-package)
+(require 'muere-defaults)
 (require 'muere-utility)
 (require 'muere-evil)
 (require 'muere-hydra)

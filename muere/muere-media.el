@@ -2,14 +2,8 @@
 ;;; Commentary:
 ;;; Code:
 
-(add-to-list 'load-path "~/.emacs.d/muere/media")
-(require 'muere-browser)
+(add-to-list 'load-path "~/.config/emacs/muere/media")
 (require 'muere-dired)
-(require 'muere-gpg)
-(require 'muere-man)
-(require 'muere-music)
 (require 'muere-pdf)
-(require 'muere-video)
-
 (provide 'muere-media)
 ;;; muere-media.el ends here

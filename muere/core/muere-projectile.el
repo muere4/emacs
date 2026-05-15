@@ -6,15 +6,19 @@
 
 (use-package projectile
   :custom
+  ;; Usar completing-read por defecto (lo sobreescribiremos con selector cuando esté)
   (projectile-completion-system 'default)
   :config
   (projectile-mode)
+
+  ;; No explotar con paths remotos (tramp, ssh, etc.)
   (defun muere/projectile-project-root-wrapper (f &rest args)
-    "Wrapper de F (projectile-project-root), pasando ARGS."
+    "Wrapper sobre F (projectile-project-root), pasando ARGS."
     (unless (file-remote-p default-directory)
       (apply f args)))
-  (advice-add 'projectile-project-root
-              :around 'muere/projectile-project-root-wrapper)
+  (advice-add 'projectile-project-root :around 'muere/projectile-project-root-wrapper)
+
+  ;; Limpiar el keymap de projectile — no queremos sus bindings globales
   (setf (cdr projectile-mode-map) nil))
 
 (provide 'muere-projectile)

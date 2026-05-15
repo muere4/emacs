@@ -2,10 +2,9 @@
 ;;; Commentary:
 ;;; Code:
 
-(add-to-list 'load-path "~/.emacs.d/muere/ui")
-(require 'muere-exwm)    ;; EWM integration
+(add-to-list 'load-path "~/.config/emacs/muere/ui")
 (require 'muere-theme)
-(require 'muere-window)
+(require 'muere-modeline)
 (require 'muere-shell)
 (require 'muere-term)
 (require 'muere-org)

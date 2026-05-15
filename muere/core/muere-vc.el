@@ -5,6 +5,7 @@
 (require 'muere-package)
 (require 'muere-hydra)
 
+;; Deshabilitar el sistema de vc built-in de Emacs — usamos magit para todo
 (use-package vc
   :custom
   (vc-handled-backends nil)
@@ -14,8 +15,11 @@
 (use-package magit
   :custom
   (magit-no-message '("Turning on"))
+  ;; TODO: descomentar cuando tengamos muere-selector
   (magit-completing-read-function #'selector-completing-read)
   :config
+
+  ;; ─── VC dispatcher ────────────────────────────────────────
   (defhydra muere/vc-dispatcher (:color teal :hint nil)
     "Dispatcher > Version Control"
     ("<f12>" keyboard-escape-quit)
@@ -33,11 +37,15 @@
     ("c" magit-commit-create "commit")
     ("p" magit-push-current-to-upstream "push")
     ("u" magit-pull-from-upstream "pull"))
+
+  ;; Reemplazar los keymaps de magit con keymaps vacíos para no pisar evil
   (setq
-   magit-mode-map        (make-keymap)
+   magit-mode-map (make-keymap)
    magit-status-mode-map (make-keymap)
-   magit-diff-mode-map   (make-keymap)
+   magit-diff-mode-map (make-keymap)
    magit-stashes-mode-map (make-keymap))
+
+  ;; Bindings de magit en motion state (lcolonq style)
   (evil-define-key 'motion magit-mode-map
     (kbd "RET") #'magit-visit-thing
     (kbd "TAB") #'magit-section-cycle
@@ -50,11 +58,13 @@
     (kbd "zR")  #'magit-section-show-level-4-all
     (kbd "zM")  #'magit-section-hide-children))
 
+;; ─── with-editor ──────────────────────────────────────────
+;; Integración contextual para commits — w guarda, SPC cancela
 (use-package with-editor
   :config
   (defun muere/with-editor-setup ()
     (setq-local muere/contextual-write 'with-editor-finish)
-    (setq-local muere/contextual-kill  'with-editor-cancel))
+    (setq-local muere/contextual-kill 'with-editor-cancel))
   (add-hook 'with-editor-mode-hook 'muere/with-editor-setup))
 
 (provide 'muere-vc)

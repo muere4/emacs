@@ -1,8 +1,8 @@
-;;; muere-editor --- editor -*- lexical-binding: t; -*-
+;;; muere-editor --- editor functionality -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;;; Code:
 
-(add-to-list 'load-path "~/.emacs.d/muere/editor")
+(add-to-list 'load-path "~/.config/emacs/muere/editor")
 (require 'muere-completion)
 (require 'muere-flycheck)
 (require 'muere-lsp)
