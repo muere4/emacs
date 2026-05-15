@@ -1,0 +1,565 @@
+Acá va el prompt:
+
+---
+
+Estoy construyendo mi config de NixOS/Emacs inspirándome en la config de lcolonq (https://github.com/lcolonq/config). La idea es copiar su config de Emacs entendiéndola parte por parte, y en el futuro usar ewm como WM. Por ahora el foco es solo Emacs.
+
+Seguimos la misma estructura de módulos que lcolonq: agregadores (`muere-core.el`, `muere-ui.el`, etc.) que cargan sub-módulos desde subdirectorios (`core/`, `ui/`, etc.).
+
+**Lo que ya está hecho:**
+- `muere-package` — use-package
+- `muere-defaults` — configuración básica (backups, historial, recentf)
+- `muere-evil` — evil + undo-tree, `q` abre el dispatcher
+- `muere-hydra` — hydra
+- `muere-utility` — s, dash, f, manejo de buffers, replace-home, mark ring, nop
+- `muere-dispatcher` — dispatcher principal con hydra, sistema de contexto (contextual-ide, contextual-quit, contextual-write, contextual-kill)
+- `muere-theme` — ef-themes (ef-duo-dark), fuentes (Iosevka Comfy + Noto Color Emoji), outshine
+- `muere-modeline` — modeline custom igual al de lcolonq
+
+**Decisiones tomadas:**
+- No usamos `which-key` ni hydra hints (lcolonq no los usa)
+- Saltamos todo lo de streaming de lcolonq (fig//, soundboard, etc.)
+- Saltamos exwm/ewm por ahora, viene después
+- Lo que depende de módulos futuros va comentado en el dispatcher con `; TODO`
+
+**Estado actual de los archivos:**
+
+`emacs/default.nix`:
+```nix
+{ config, pkgs, lib, inputs, ... }:
+
+let
+  users = [ "muere" ];
+in
+{
+  fonts.packages = with pkgs; [
+    iosevka-comfy.comfy
+    nerd-fonts.terminess-ttf
+    nerd-fonts.symbols-only
+    nerd-fonts.jetbrains-mono
+    nerd-fonts.fira-code
+    roboto
+    symbola
+    noto-fonts-color-emoji
+  ];
+
+  home-manager.users = lib.genAttrs users (username: {
+    programs.emacs = {
+      enable = true;
+      package = pkgs.emacs30-pgtk;
+      extraPackages = epkgs: with epkgs; [
+        ef-themes
+        use-package
+        evil
+        undo-tree
+        hydra
+        outshine
+        s
+        dash
+        f
+      ];
+    };
+
+    home.file.".config/emacs".source = ./emacs.d;
+  });
+}
+```
+
+`emacs/emacs.d/init.el`:
+```elisp
+;;; init --- initialization -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/muere")
+
+(require 'muere-core)
+(require 'muere-ui)
+(require 'muere-editor)
+(require 'muere-lang)
+
+(provide 'init)
+;;; init.el ends here
+```
+
+`emacs/emacs.d/muere/muere-core.el`:
+```elisp
+;;; muere-core --- core functionality -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/muere/core")
+(require 'muere-package)
+(require 'muere-defaults)
+(require 'muere-utility)
+(require 'muere-evil)
+(require 'muere-hydra)
+(require 'muere-dispatcher)
+
+(provide 'muere-core)
+;;; muere-core.el ends here
+```
+
+`emacs/emacs.d/muere/muere-ui.el`:
+```elisp
+;;; muere-ui --- user interface -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/muere/ui")
+(require 'muere-theme)
+(require 'muere-modeline)
+
+(provide 'muere-ui)
+;;; muere-ui.el ends here
+```
+
+`emacs/emacs.d/muere/muere-editor.el`:
+```elisp
+;;; muere-editor --- editor functionality -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/muere/editor")
+
+(provide 'muere-editor)
+;;; muere-editor.el ends here
+```
+
+`emacs/emacs.d/muere/muere-lang.el`:
+```elisp
+;;; muere-lang --- language support -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/muere/lang")
+
+(provide 'muere-lang)
+;;; muere-lang.el ends here
+```
+
+`emacs/emacs.d/muere/core/muere-package.el`:
+```elisp
+;;; muere-package --- package management -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(require 'use-package)
+(setq use-package-always-ensure nil)
+
+(provide 'muere-package)
+;;; muere-package.el ends here
+```
+
+`emacs/emacs.d/muere/core/muere-defaults.el`:
+```elisp
+;;; muere-defaults --- sane defaults -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(require 'muere-package)
+
+(setq make-backup-files nil
+      auto-save-default nil)
+
+(setq custom-file (locate-user-emacs-file "custom-vars.el"))
+(load custom-file 'noerror 'nomessage)
+
+(setq savehist-file "~/.local/share/emacs/history")
+(savehist-mode 1)
+(recentf-mode 1)
+(delete-selection-mode 1)
+(column-number-mode)
+
+(provide 'muere-defaults)
+;;; muere-defaults.el ends here
+```
+
+`emacs/emacs.d/muere/core/muere-evil.el`:
+```elisp
+;;; muere-evil --- modal editing -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(require 'muere-package)
+
+(use-package undo-tree
+  :custom
+  (undo-tree-auto-save-history nil)
+  :config
+  (global-undo-tree-mode))
+
+(use-package evil
+  :custom
+  (evil-auto-balance-windows nil)
+  (evil-want-abbrev-expand-on-insert-exit nil)
+  (evil-want-minibuffer t)
+  (evil-undo-system 'undo-tree)
+  :config
+  (evil-mode)
+
+  (setq evil-emacs-state-modes '())
+  (evil-set-initial-state 'image-mode 'motion)
+  (evil-set-initial-state 'special-mode 'motion)
+  (evil-set-initial-state 'compilation-mode 'motion)
+  (evil-set-initial-state 'grep-mode 'motion)
+  (evil-set-initial-state 'Info-mode 'motion)
+  (evil-set-initial-state 'magit-status-mode 'motion)
+  (evil-set-initial-state 'magit-diff-mode 'motion)
+  (evil-set-initial-state 'eshell-mode 'normal)
+  (evil-set-initial-state 'term-mode 'normal)
+
+  (define-key evil-normal-state-map (kbd "0") 'evil-first-non-blank)
+  (define-key evil-motion-state-map (kbd "0") 'evil-first-non-blank)
+  (define-key evil-visual-state-map (kbd "0") 'evil-first-non-blank)
+
+  (define-key evil-normal-state-map (kbd "#") #'comment-dwim)
+  (define-key evil-visual-state-map (kbd "#") #'comment-dwim)
+
+  (define-key read-passwd-map (kbd "C-v") 'evil-paste-after)
+
+  (define-key evil-normal-state-map (kbd "q") 'muere/dispatcher)
+  (define-key evil-motion-state-map (kbd "q") 'muere/dispatcher)
+  (define-key evil-emacs-state-map  (kbd "q") 'muere/dispatcher))
+
+(provide 'muere-evil)
+;;; muere-evil.el ends here
+```
+
+`emacs/emacs.d/muere/core/muere-hydra.el`:
+```elisp
+;;; muere-hydra --- interface dispatch -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(require 'muere-package)
+
+(use-package hydra)
+
+(provide 'muere-hydra)
+;;; muere-hydra.el ends here
+```
+
+`emacs/emacs.d/muere/core/muere-utility.el`:
+```elisp
+;;; muere-utility --- miscellaneous utility functions -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(require 'muere-package)
+
+(use-package cl-lib)
+(use-package s)
+(use-package dash)
+(use-package f)
+
+;; ─── Home ──────────────────────────────────────────────────
+(defvar muere/home (getenv "HOME"))
+
+(defun muere/replace-home (dir)
+  "Reemplaza el directorio home en DIR con ~."
+  (if (file-remote-p dir)
+      dir
+    (s-replace muere/home "~" dir)))
+
+;; ─── Buffers ───────────────────────────────────────────────
+(defvar muere/boring-buffer-regexp-list
+  '("\\` "
+    "\\`\\*tramp"
+    "\\`\\*Echo Area"
+    "\\`\\*Minibuf"
+    "\\`\\*eldoc"
+    "*direnv*"
+    "*Pinentry*"
+    "*Shell Command Output*"))
+
+(defun muere/buffer-boring-p (buffer)
+  "Devuelve non-nil si BUFFER es aburrido."
+  (cl-reduce
+   (lambda (x y) (or x y))
+   (mapcar (lambda (r) (string-match r buffer))
+           muere/boring-buffer-regexp-list)))
+
+(defun muere/buffer-eshell-p (buf)
+  "Devuelve non-nil si BUF es un buffer de eshell."
+  (member
+   (buffer-local-value 'major-mode (get-buffer buf))
+   '(eshell-mode)))
+
+(defun muere/buffer-list ()
+  "Devuelve la lista de buffers no aburridos."
+  (cl-remove-if 'muere/buffer-boring-p
+                (mapcar 'buffer-name (buffer-list))))
+
+(defun muere/unaffiliated-buffers ()
+  "Devuelve buffers que no son shells."
+  (cl-remove-if
+   (lambda (b) (muere/buffer-eshell-p b))
+   (muere/buffer-list)))
+
+(defun muere/buffer-directory (buf)
+  "Devuelve el `default-directory' de BUF."
+  (buffer-local-value 'default-directory (get-buffer buf)))
+
+(defun muere/previous-buffer ()
+  "Ir al buffer anterior en la lista."
+  (interactive)
+  (switch-to-buffer (cadr (muere/buffer-list))))
+
+;; ─── Paths ─────────────────────────────────────────────────
+(defun muere/dirname (path)
+  "Devuelve el nombre del directorio más interno de PATH."
+  (file-name-nondirectory
+   (directory-file-name
+    (file-name-directory path))))
+
+;; ─── Mark ring ─────────────────────────────────────────────
+(defun muere/pop-mark ()
+  "Sacar una posición del mark ring."
+  (when mark-ring
+    (set-marker (mark-marker) (car mark-ring))
+    (set-marker (car mark-ring) nil)
+    (unless (mark t) (ding))
+    (pop mark-ring))
+  (deactivate-mark))
+
+(defun muere/pop-to-mark-command ()
+  "Saltar al mark y sacar una nueva posición del ring."
+  (interactive)
+  (if (null (mark t))
+      (user-error "No hay mark en este buffer")
+    (if (= (point) (mark t))
+        (message "Mark popped"))
+    (goto-char (mark t))
+    (muere/pop-mark)))
+
+(defun muere/unpop-to-mark-command ()
+  "Ir hacia adelante en el mark ring."
+  (interactive)
+  (when mark-ring
+    (set-marker (mark-marker) (car (last mark-ring)) (current-buffer))
+    (when (null (mark t)) (ding))
+    (setq mark-ring (nbutlast mark-ring))
+    (goto-char (marker-position (car (last mark-ring))))))
+
+;; ─── Misc ──────────────────────────────────────────────────
+(defun muere/nop ()
+  "No hacer nada."
+  (interactive)
+  nil)
+
+(provide 'muere-utility)
+;;; muere-utility.el ends here
+```
+
+`emacs/emacs.d/muere/core/muere-dispatcher.el`:
+```elisp
+;;; muere-dispatcher --- contextual interfaces -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(require 'muere-package)
+(require 'muere-evil)
+(require 'muere-hydra)
+
+;; ─── Sistema de contexto ───────────────────────────────────
+(defvar-local muere/contextual-ide
+  (lambda () (interactive) (message "No IDE en este modo")))
+(defvar-local muere/contextual-lookup 'man)
+(defvar-local muere/contextual-quit nil)
+(defvar-local muere/contextual-write nil)
+(defvar-local muere/contextual-kill nil)
+
+(setq evil-lookup-func (lambda () (call-interactively muere/contextual-lookup)))
+
+;; ─── Integración con evil ──────────────────────────────────
+(defun muere/evil-quit-wrapper (f &rest args)
+  "Wrapper sobre F (evil-quit), pasando ARGS."
+  (if muere/contextual-quit
+      (call-interactively muere/contextual-quit)
+    (apply f args)))
+(advice-add 'evil-quit :around 'muere/evil-quit-wrapper)
+
+(defun muere/evil-write-wrapper (f &rest args)
+  "Wrapper sobre F (evil-write), pasando ARGS."
+  (if muere/contextual-write
+      (call-interactively muere/contextual-write)
+    (apply f args)))
+(advice-add 'evil-write :around 'muere/evil-write-wrapper)
+
+;; ─── Utilidades ────────────────────────────────────────────
+(defun muere/kill-this-buffer ()
+  "Cerrar buffer actual o llamar a contextual-kill."
+  (interactive)
+  (if muere/contextual-kill
+      (call-interactively muere/contextual-kill)
+    (kill-this-buffer)))
+
+(defun muere/switch-to-scratch ()
+  "Ir al buffer scratch."
+  (interactive)
+  (if (get-buffer "*scratch*")
+      (switch-to-buffer "*scratch*")
+    (progn
+      (switch-to-buffer (get-buffer-create "*scratch*"))
+      (cd "~")
+      (eshell-mode))))
+
+;; ─── Sub-dispatchers ───────────────────────────────────────
+(defhydra muere/repl-dispatcher (:color teal :hint nil)
+  "Dispatcher > REPLs"
+  ("<f12>" keyboard-escape-quit "salir")
+  ("l" ielm "elisp"))
+
+;; ─── Dispatcher principal ──────────────────────────────────
+(defhydra muere/dispatcher (:color teal :hint nil)
+  "Dispatcher"
+  ("<f12>" keyboard-escape-quit)
+  ("SPC" muere/kill-this-buffer)
+  ("\"" evil-window-vsplit)
+  ("%" evil-window-split)
+  ("0" muere/switch-to-scratch)
+  ("+" (text-scale-increase 1) :color red)
+  ("=" (text-scale-increase 1) :color red)
+  ("-" (text-scale-increase -1) :color red)
+  ("i" (call-interactively muere/contextual-ide) "ide")
+  ("h" muere/repl-dispatcher/body "repl")
+  ("H" ielm)
+  ("w" evil-write)
+  ("k" evil-quit)
+  ("q" muere/previous-buffer)
+  ;; TODO: descomentar cuando tengamos los módulos
+  ;; ("f" selector-for-files "archivo")
+  ;; ("o" muere/navigate "buf")
+  ;; ("O" selector-for-buffers)
+  ;; ("p" projectile-switch-project "proyecto")
+  ;; ("s" muere/shell-here "shell")
+  ;; ("t" muere/term-here "term")
+  ;; ("v" muere/vc-dispatcher/body "vc")
+  ;; ("V" magit-status)
+  ;; ("/" muere/selector-rg)
+  ;; (":" selector-M-x)
+  ;; ("B" muere/visit-bookmark)
+  ("?" describe-key "ayuda"))
+
+;; ─── Entry points ──────────────────────────────────────────
+(defun muere/dispatcher ()
+  "Abrir el dispatcher."
+  (interactive)
+  (let ((hydra-is-helpful nil))
+    (call-interactively 'muere/dispatcher/body)))
+
+(defun muere/dispatcher-silent ()
+  "Abrir el dispatcher sin hint."
+  (interactive)
+  (let ((hydra-is-helpful nil))
+    (call-interactively 'muere/dispatcher/body)))
+
+(provide 'muere-dispatcher)
+;;; muere-dispatcher.el ends here
+```
+
+`emacs/emacs.d/muere/ui/muere-theme.el`:
+```elisp
+;;; muere-theme --- UI theme -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(require 'muere-package)
+
+;; ─── UI básica ─────────────────────────────────────────────
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+(setq inhibit-startup-message t)
+(tool-bar-mode -1)
+(scroll-bar-mode -1)
+(menu-bar-mode -1)
+(set-fringe-mode 12)
+
+(global-display-line-numbers-mode 1)
+(dolist (mode '(term-mode-hook shell-mode-hook eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+;; ─── Fuentes ───────────────────────────────────────────────
+(set-frame-font "Iosevka Comfy:pixelsize=20")
+(set-face-font 'default "Iosevka Comfy:pixelsize=20")
+(set-face-attribute 'line-number nil :height 1.2)
+
+(set-fontset-font
+ t 'symbol
+ (font-spec
+  :family "Noto Color Emoji"
+  :size 18
+  :weight 'normal
+  :width 'normal
+  :slant 'normal))
+
+;; ─── Tema ──────────────────────────────────────────────────
+(use-package ef-themes
+  :config
+  (ef-themes-select 'ef-duo-dark)
+  (ef-themes-with-colors
+    (set-face-attribute 'vertical-border nil
+                        :foreground bg-alt
+                        :background bg-alt)
+    (set-face-attribute 'fringe nil
+                        :foreground bg-alt
+                        :background bg-alt)))
+
+;; ─── Outshine ──────────────────────────────────────────────
+(use-package outshine
+  :config
+  (add-hook 'outline-minor-mode-hook 'outshine-mode))
+
+(provide 'muere-theme)
+;;; muere-theme.el ends here
+```
+
+`emacs/emacs.d/muere/ui/muere-modeline.el`:
+```elisp
+;;; muere-modeline --- modeline -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(require 'muere-utility)
+
+(defun muere/mode-line-render (left right)
+  "Renderiza el modeline con LEFT y RIGHT alineados."
+  (let* ((available-width (- (window-width) (length left) 3)))
+    (format (format " %%s %%%ds " available-width) left right)))
+
+(setq-default
+ mode-line-format
+ '((:eval
+    (muere/mode-line-render
+     (concat
+      (propertize (format-mode-line (buffer-name)) 'face 'bold)
+      " - "
+      (format-mode-line mode-name)
+      " - "
+      (muere/replace-home default-directory))
+     (format-mode-line
+      '(line-number-mode
+        (" line %l"
+         (column-number-mode " column %c"))))))))
+
+(provide 'muere-modeline)
+;;; muere-modeline.el ends here
+```
+
+**Próximos módulos a implementar en orden:**
+- `muere-projectile` → `core/`
+- `muere-vc` (magit) → `core/`
+- `muere-selector` → `core/` (el más complejo, depende de projectile)
+- `muere-shell` → `ui/`
+- `muere-term` (vterm) → `ui/`
+- `muere-dired` → futura carpeta `media/`
+
+**Contexto adicional:**
+- El resto de la config de NixOS (hosts, modules, home) no cambió
+- No usamos which-key ni hydra hints (lcolonq no los usa)
+- Todo lo de streaming de lcolonq (fig//, soundboard) se saltea
+- exwm/ewm se implementa después, cuando esté toda la config de Emacs
+
+---
+
+Con eso deberías poder continuar en otro chat sin perder contexto.

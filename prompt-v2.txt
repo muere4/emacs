@@ -1,0 +1,355 @@
+Estoy construyendo mi config de NixOS/Emacs inspirándome en la config de lcolonq (https://github.com/lcolonq/config). La idea es copiar su config de Emacs entendiéndola parte por parte, y en el futuro usar ewm como WM. Por ahora el foco es solo Emacs.
+
+Seguimos la misma estructura de módulos que lcolonq: agregadores (`muere-core.el`, `muere-ui.el`, etc.) que cargan sub-módulos desde subdirectorios (`core/`, `ui/`, etc.).
+
+---
+
+## Decisiones globales
+
+- No usamos `which-key` ni hydra hints (lcolonq no los usa)
+- Saltamos todo lo de streaming de lcolonq (fig//, soundboard, etc.)
+- Saltamos exwm/ewm por ahora — viene después de tener toda la config de Emacs estable
+- `selector.el` (librería custom de lcolonq) se copió tal cual a `emacs/emacs.d/lisp/selector.el`
+- El load-path de `lisp/` se agrega en `muere-package.el`
+
+---
+
+## Lo que ya está hecho
+
+### `core/`
+- **`muere-package`** — use-package, agrega `~/.config/emacs/lisp` al load-path
+- **`muere-defaults`** — backups, historial, recentf, delete-selection, column-number
+- **`muere-utility`** — s, dash, f, manejo de buffers (boring, eshell, list, previous), replace-home, dirname, mark ring, nop
+- **`muere-evil`** — evil + undo-tree, `q` abre dispatcher, `0` va a first-non-blank, `#` comenta, estados iniciales por modo
+- **`muere-hydra`** — hydra
+- **`muere-dispatcher`** — dispatcher principal con hydra, sistema de contexto (contextual-ide, contextual-quit, contextual-write, contextual-kill), wrappers sobre evil-quit/evil-write, todos los bindings activos (f, o, O, p, s, t, v, V, /, :, a)
+- **`muere-projectile`** — projectile-mode, wrapper para paths remotos, keymap limpio. Igual a lcolonq.
+- **`muere-selector`** — selector.el como completing-read y read-file-name, fuentes: project buffers, unaffiliated buffers, eshell buffers, project files, recentf, create file/buffer, muere/navigate, muere/run-external-command, muere/selector-rg. *Omitido vs lcolonq: IRC buffers, exwm buffers, twitter buffers, bookmarks (depende de muere-browser, pendiente).*
+- **`muere-vc`** — magit con keymaps limpios y bindings de motion state, vc-dispatcher hydra, with-editor contextual (w guarda commit, SPC cancela). selector-completing-read activo. *Omitido vs lcolonq: `:body-pre/:post` de exwm en el hydra.*
+
+### `ui/`
+- **`muere-theme`** — ef-themes (ef-duo-dark), fuentes (Iosevka Comfy + Noto Color Emoji), outshine, UI básica (sin toolbar/scrollbar/menubar), line numbers
+- **`muere-modeline`** — modeline custom: `buffer - modo - directorio` a la izquierda, `line/column` a la derecha. Igual a lcolonq.
+- **`muere-shell`** — eshell con prompt custom (directorio + rama git), C-k/C-j para navegar prompts, C-l limpia, C-d EOF/kill, truncado automático con idle timer, envrc (integración direnv). *Omitido vs lcolonq: o/mode (completion custom), fish-completion (comentado).*
+- **`muere-term`** — vterm, insert state pasa teclas directo al terminal, normal state permite navegar. Igual a lcolonq.
+- **`muere-org`** — org-mode con evil bindings, ide-org hydra (export, tangle, refile, todo, etc.), org-src contextual (w guarda, k sale), org-roam básico con dailies y agenda-dispatcher hydra. *Omitido vs lcolonq: GPG en notas privadas, ox-reveal, cfw calendar widget, split público/privado en org-roam. Babel limitado a elisp/shell/python/C — agregar más en `org-babel-load-languages` según necesidad.*
+
+### `editor/`
+- **`muere-completion`** — corfu (inline completion, auto desde 1 char) + cape (file paths, dabbrev). *Reemplaza a othonoi (librería custom de lcolonq, no disponible).*
+- **`muere-flycheck`** — flycheck global, keymap limpio, eldoc con delay 0.1. *Simplificado vs lcolonq: sin quick-peek ni flycheck-inline (inline error rendering).*
+- **`muere-lsp`** — lsp-mode + lsp-ui (doc popup al fondo de ventana) + yasnippet. En buffers LSP, K muestra eldoc en buffer separado. *Omitido vs lcolonq: dap-mode (debugger), custom frame positioning de lsp-ui-doc.*
+
+### `media/`
+- **`muere-dired`** — dired con keymaps limpios en motion state (hjkl, RET entra/abre, u sube, x borra, d renombra, y copia, i thumbnails), image-dired. Igual a lcolonq.
+- **`muere-pdf`** — pdf-tools con evil bindings en motion state. find-file abre PDFs en Okular (ya configurado como default en plasma.nix). *Diferencia vs lcolonq: usa Okular en vez de Firefox.*
+
+### `lang/`
+- **`muere-elisp`** — ide-elisp hydra (eval-defun, eval-buffer, ielm), outline-minor-mode, contextual-lookup → selector-apropos. *Omitido vs lcolonq: lispy, othonoi.*
+- **`muere-nix`** — nix-mode + lsp (nixd, ya en modules/system/dev/nix.nix), muere/nixos-rebuild en compilation-mode, ide-nix hydra. *Omitido vs lcolonq: nix-prettify-mode, build-farm.*
+- **`muere-rust`** — rustic + lsp (rust-analyzer, ya en modules/system/dev/rust.nix), ide-rust hydra. *Omitido vs lcolonq: debugging WASM/trunk con dap.*
+- **`muere-c`** — c-mode/c++-mode + lsp (clangd, ya en modules/system/dev/cpp.nix), linux style, ide-c hydra con `b` para make. *Omitido vs lcolonq: GBA debugging, GDB source window.*
+- **`muere-haskell`** — lsp-haskell, ignore dist-newstyle/deps en file watcher, ide-haskell hydra (goto imports, goto cabal). *Simplificado vs lcolonq: sin las alternativas comentadas (dante, eglot).*
+
+---
+
+## Estado actual de los archivos clave
+
+`emacs/default.nix`:
+```nix
+{ config, pkgs, lib, inputs, ... }:
+
+let
+  users = [ "muere" ];
+in
+{
+  fonts.packages = with pkgs; [
+    iosevka-comfy.comfy
+    nerd-fonts.terminess-ttf
+    nerd-fonts.symbols-only
+    nerd-fonts.jetbrains-mono
+    nerd-fonts.fira-code
+    roboto
+    symbola
+    noto-fonts-color-emoji
+  ];
+
+  environment.systemPackages = with pkgs; [
+    ripgrep
+    libvterm
+  ];
+
+  home-manager.users = lib.genAttrs users (username: {
+    programs.emacs = {
+      enable = true;
+      package = pkgs.emacs30-pgtk;
+      extraPackages = epkgs: with epkgs; [
+        ef-themes
+        evil
+        undo-tree
+        hydra
+        outshine
+        s
+        dash
+        f
+        projectile
+        magit
+        envrc
+        vterm
+        corfu
+        cape
+        flycheck
+        lsp-mode
+        lsp-ui
+        yasnippet
+        nix-mode
+        rustic
+        lsp-haskell
+        haskell-mode
+        pdf-tools
+        org-roam
+      ];
+    };
+
+    home.file.".config/emacs".source = ./emacs.d;
+  });
+}
+```
+
+`emacs/emacs.d/init.el`:
+```elisp
+;;; init --- initialization -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/muere")
+
+(require 'muere-core)
+(require 'muere-ui)
+(require 'muere-editor)
+(require 'muere-media)
+(require 'muere-lang)
+
+(provide 'init)
+;;; init.el ends here
+```
+
+`emacs/emacs.d/muere/muere-core.el`:
+```elisp
+;;; muere-core --- core functionality -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/muere/core")
+(require 'muere-package)
+(require 'muere-defaults)
+(require 'muere-utility)
+(require 'muere-evil)
+(require 'muere-hydra)
+(require 'muere-dispatcher)
+(require 'muere-projectile)
+(require 'muere-selector)
+(require 'muere-vc)
+
+(provide 'muere-core)
+;;; muere-core.el ends here
+```
+
+`emacs/emacs.d/muere/muere-ui.el`:
+```elisp
+;;; muere-ui --- user interface -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/muere/ui")
+(require 'muere-theme)
+(require 'muere-modeline)
+(require 'muere-shell)
+(require 'muere-term)
+(require 'muere-org)
+
+(provide 'muere-ui)
+;;; muere-ui.el ends here
+```
+
+`emacs/emacs.d/muere/muere-editor.el`:
+```elisp
+;;; muere-editor --- editor functionality -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/muere/editor")
+(require 'muere-completion)
+(require 'muere-flycheck)
+(require 'muere-lsp)
+
+(provide 'muere-editor)
+;;; muere-editor.el ends here
+```
+
+`emacs/emacs.d/muere/muere-media.el`:
+```elisp
+;;; muere-media --- multimedia -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/muere/media")
+(require 'muere-dired)
+(require 'muere-pdf)
+
+(provide 'muere-media)
+;;; muere-media.el ends here
+```
+
+`emacs/emacs.d/muere/muere-lang.el`:
+```elisp
+;;; muere-lang --- language support -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/muere/lang")
+(require 'muere-elisp)
+(require 'muere-nix)
+(require 'muere-rust)
+(require 'muere-c)
+(require 'muere-haskell)
+
+(provide 'muere-lang)
+;;; muere-lang.el ends here
+```
+
+`emacs/emacs.d/muere/core/muere-package.el`:
+```elisp
+;;; muere-package --- package management -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(add-to-list 'load-path "~/.config/emacs/lisp")
+
+(require 'use-package)
+(setq use-package-always-ensure nil)
+
+(provide 'muere-package)
+;;; muere-package.el ends here
+```
+
+`emacs/emacs.d/muere/core/muere-dispatcher.el` (estado actual con todos los bindings activos):
+```elisp
+;;; muere-dispatcher --- contextual interfaces -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
+
+(require 'muere-package)
+(require 'muere-evil)
+(require 'muere-hydra)
+
+(defvar-local muere/contextual-ide
+  (lambda () (interactive) (message "No IDE en este modo")))
+(defvar-local muere/contextual-lookup 'man)
+(defvar-local muere/contextual-quit nil)
+(defvar-local muere/contextual-write nil)
+(defvar-local muere/contextual-kill nil)
+
+(setq evil-lookup-func (lambda () (call-interactively muere/contextual-lookup)))
+
+(defun muere/evil-quit-wrapper (f &rest args)
+  (if muere/contextual-quit
+      (call-interactively muere/contextual-quit)
+    (apply f args)))
+(advice-add 'evil-quit :around 'muere/evil-quit-wrapper)
+
+(defun muere/evil-write-wrapper (f &rest args)
+  (if muere/contextual-write
+      (call-interactively muere/contextual-write)
+    (apply f args)))
+(advice-add 'evil-write :around 'muere/evil-write-wrapper)
+
+(defun muere/kill-this-buffer ()
+  (interactive)
+  (if muere/contextual-kill
+      (call-interactively muere/contextual-kill)
+    (kill-this-buffer)))
+
+(defun muere/switch-to-scratch ()
+  (interactive)
+  (if (get-buffer "*scratch*")
+      (switch-to-buffer "*scratch*")
+    (progn
+      (switch-to-buffer (get-buffer-create "*scratch*"))
+      (cd "~")
+      (eshell-mode))))
+
+(defhydra muere/repl-dispatcher (:color teal :hint nil)
+  "Dispatcher > REPLs"
+  ("<f12>" keyboard-escape-quit "salir")
+  ("l" ielm "elisp"))
+
+(defhydra muere/dispatcher (:color teal :hint nil)
+  "Dispatcher"
+  ("<f12>" keyboard-escape-quit)
+  ("SPC" muere/kill-this-buffer)
+  ("\"" evil-window-vsplit)
+  ("%" evil-window-split)
+  ("0" muere/switch-to-scratch)
+  ("+" (text-scale-increase 1) :color red)
+  ("=" (text-scale-increase 1) :color red)
+  ("-" (text-scale-increase -1) :color red)
+  ("a" muere/agenda-dispatcher/body "notas")
+  ("f" selector-for-files "archivo")
+  ("F" (dired "."))
+  ("h" muere/repl-dispatcher/body "repl")
+  ("H" ielm)
+  ("i" (call-interactively muere/contextual-ide) "ide")
+  ("k" evil-quit)
+  ("o" muere/navigate "buf")
+  ("O" selector-for-buffers)
+  ("p" projectile-switch-project "proyecto")
+  ("q" muere/previous-buffer)
+  ("s" muere/shell-here "shell")
+  ("t" muere/term-here "term")
+  ("v" muere/vc-dispatcher/body "vc")
+  ("V" magit-status)
+  ("w" evil-write)
+  ("/" muere/selector-rg)
+  (":" selector-M-x)
+  ;; ("B" muere/visit-bookmark)  ; pendiente: muere-browser
+  ("?" describe-key "ayuda"))
+
+(defun muere/dispatcher ()
+  (interactive)
+  (let ((hydra-is-helpful nil))
+    (call-interactively 'muere/dispatcher/body)))
+
+(defun muere/dispatcher-silent ()
+  (interactive)
+  (let ((hydra-is-helpful nil))
+    (call-interactively 'muere/dispatcher/body)))
+
+(provide 'muere-dispatcher)
+;;; muere-dispatcher.el ends here
+```
+
+---
+
+## Pendiente
+
+### `media/` (de colonq-media)
+- **`muere-man`** — man pages + info mode con evil bindings
+- **`muere-browser`** — bookmarks, browse-url, selector-search. Cuando esté, descomentar `("B" muere/visit-bookmark)` en el dispatcher y agregar los bookmarks de muere/selector en muere-selector.
+
+### `lang/` (opcional, según necesidad)
+- **`muere-python`** — lsp-python + poetry
+- **`muere-web`** — JS/TS (typescript-ts-mode + lsp), json-mode, web-mode
+- **`muere-yaml`** — yaml-mode, útil para configs de NixOS
+- **`muere-lisp`** — Common Lisp con sly
+- Otros: fennel, forth, asm (más exóticos, de colonq-lang)
+
+### Futuro (fuera de Emacs)
+- **ewm como WM** — ya está instalado en `modules/system/desktop/ewm.nix` y configurado para usar el paquete de emacs de home-manager. La integración en Emacs (colonq-exwm adaptado) viene cuando toda la config de Emacs esté estable.
+
+---
+
+## Contexto adicional
+- El resto de la config de NixOS (hosts, modules, home) no cambió respecto al estado inicial
+- `selector.el` (de lcolonq) está copiado tal cual en `emacs/emacs.d/lisp/selector.el`
+- nixd, clangd, rust-analyzer ya están en el sistema vía `modules/system/dev/`
+- Okular ya es el visor PDF default vía `modules/system/desktop/plasma.nix`
