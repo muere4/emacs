@@ -6,9 +6,9 @@
 (require 'muere-hydra)
 (require 'muere-lsp)
 
-(defhydra muere/ide-c (:color teal :hint nil)
+(defhydra muere/ide-c (:color teal)
   "Dispatcher > C/C++ IDE"
-  ("<f12>" keyboard-escape-quit)
+  ("<f12>" keyboard-escape-quit "salir")
   ("S" lsp-workspace-restart "restart lsp")
   ("i" lsp-execute-code-action "code action")
   ("b" (compile "make") "build")
@@ -25,7 +25,6 @@
   (setq-local tab-width 4)
   (setq-local c-basic-offset 4)
   (setq-local muere/contextual-ide #'muere/ide-c/body)
-  ;; clangd via lsp — está en modules/system/dev/cpp.nix
   (lsp-deferred))
 
 (add-hook 'c-mode-hook   #'muere/c-setup)

@@ -7,8 +7,6 @@
 (require 'muere-hydra)
 
 ;; ─── Sistema de contexto ───────────────────────────────────
-;; Variables buffer-local que cada modo puede sobreescribir
-;; para personalizar el comportamiento del dispatcher
 (defvar-local muere/contextual-ide
   (lambda () (interactive) (message "No IDE en este modo")))
 (defvar-local muere/contextual-lookup 'man)
@@ -16,11 +14,9 @@
 (defvar-local muere/contextual-write nil)
 (defvar-local muere/contextual-kill nil)
 
-;; El lookup lo usa evil-K por defecto
 (setq evil-lookup-func (lambda () (call-interactively muere/contextual-lookup)))
 
 ;; ─── Integración con evil ──────────────────────────────────
-;; evil-quit y evil-write revisan si hay función contextual primero
 (defun muere/evil-quit-wrapper (f &rest args)
   "Wrapper sobre F (evil-quit), pasando ARGS."
   (if muere/contextual-quit
@@ -54,56 +50,61 @@
       (eshell-mode))))
 
 ;; ─── Sub-dispatchers ───────────────────────────────────────
-(defhydra muere/repl-dispatcher (:color teal :hint nil)
+(defhydra muere/repl-dispatcher (:color teal)
   "Dispatcher > REPLs"
   ("<f12>" keyboard-escape-quit "salir")
   ("l" ielm "elisp"))
-  ;; TODO: agregar cuando tengamos los módulos
-  ;; ("x" nix-repl "nix")
-  ;; ("y" (switch-to-buffer (make-comint "Python REPL" "python3" nil)) "python")
 
 ;; ─── Dispatcher principal ──────────────────────────────────
-(defhydra muere/dispatcher (:color teal :hint nil)
+(defhydra muere/dispatcher (:color teal)
   "Dispatcher"
-  ("<f12>" keyboard-escape-quit)
+  ("<f12>" keyboard-escape-quit "salir")
 
   ;; Ventanas y buffers
-  ("SPC" muere/kill-this-buffer)
-  ("\"" evil-window-vsplit)
-  ("%" evil-window-split)
-  ("0" muere/switch-to-scratch)
+  ("SPC" muere/kill-this-buffer "cerrar buf")
+  ("\"" evil-window-vsplit "vsplit")
+  ("%" evil-window-split "split")
+  ("0" muere/switch-to-scratch "scratch")
 
-  ;; Zoom de texto (:color red = no cerrar el hydra al ejecutar)
-  ("+" (text-scale-increase 1) :color red)
-  ("=" (text-scale-increase 1) :color red)
-  ("-" (text-scale-increase -1) :color red)
+  ;; Zoom de texto
+  ("+" (text-scale-increase 1) "zoom +" :color red)
+  ("=" (text-scale-increase 1) "zoom +" :color red)
+  ("-" (text-scale-increase -1) "zoom -" :color red)
 
-  ;; IDE contextual — cada modo setea muere/contextual-ide
+  ;; IDE contextual
   ("i" (call-interactively muere/contextual-ide) "ide")
 
   ;; REPLs
   ("h" muere/repl-dispatcher/body "repl")
-  ("H" ielm)
+  ("H" ielm "ielm")
 
   ;; Write/quit
-  ("w" evil-write)
-  ("k" evil-quit)
+  ("w" evil-write "write")
+  ("k" evil-quit "quit")
 
-  ;; TODO: descomentar cuando tengamos los módulos
+  ;; Archivos y buffers
   ("f" selector-for-files "archivo")
-  ("F" (dired "."))
+  ("F" (dired ".") "dired")
   ("o" muere/navigate "buf")
-  ("O" selector-for-buffers)
+  ("O" selector-for-buffers "buffers")
+
+  ;; Proyecto
   ("p" projectile-switch-project "proyecto")
+
+  ;; Shell/term
   ("s" muere/shell-here "shell")
   ("t" muere/term-here "term")
+
+  ;; Notas y VC
   ("a" muere/agenda-dispatcher/body "notas")
   ("v" muere/vc-dispatcher/body "vc")
-  ("V" magit-status)
-  ("/" muere/selector-rg)
-  (":" selector-M-x)
-  ("q" muere/previous-buffer)
-  ;; ("B" muere/visit-bookmark)
+  ("V" magit-status "magit")
+
+  ;; Búsqueda y comandos
+  ("/" muere/selector-rg "rg")
+  (":" selector-M-x "M-x")
+  ("q" muere/previous-buffer "prev buf")
+  ;; ("B" muere/visit-bookmark "bookmark")
 
   ("?" describe-key "ayuda"))
 
@@ -111,8 +112,7 @@
 (defun muere/dispatcher ()
   "Abrir el dispatcher."
   (interactive)
-  (let ((hydra-is-helpful nil))
-    (call-interactively 'muere/dispatcher/body)))
+  (call-interactively 'muere/dispatcher/body))
 
 (defun muere/dispatcher-silent ()
   "Abrir el dispatcher sin hint."

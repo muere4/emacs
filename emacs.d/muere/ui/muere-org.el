@@ -32,9 +32,9 @@
      (shell      . t)
      (python     . t)
      (C          . t)
-     (sqlite     . t)   ; útil para explorar bases de datos
-     (gnuplot    . t)   ; gráficos desde bloques org
-     (latex      . t))) ; fragmentos LaTeX inline
+     (sqlite     . t)
+     (gnuplot    . t)
+     (latex      . t)))
 
   ;; ─── Evil bindings ───────────────────────────────────────
   (evil-define-key 'normal org-mode-map
@@ -51,9 +51,9 @@
     (kbd "RET") 'org-open-at-point)
 
   ;; ─── IDE hydra ───────────────────────────────────────────
-  (defhydra muere/ide-org (:color teal :hint nil)
+  (defhydra muere/ide-org (:color teal)
     "Dispatcher > Org IDE"
-    ("<f12>" keyboard-escape-quit)
+    ("<f12>" keyboard-escape-quit "salir")
     ("i" org-ctrl-c-ctrl-c "poke")
     ("o" org-goto "goto")
     ("h" org-html-export-to-html "html")
@@ -86,7 +86,6 @@
     (org-indent-mode))
   (add-hook 'org-mode-hook #'muere/org-setup)
 
-  ;; Cuando editás un bloque src: w guarda, SPC/k salen
   (defun muere/org-src-setup ()
     (when (eq major-mode 'emacs-lisp-mode)
       (setq-local flycheck-disabled-checkers '(emacs-lisp-checkdoc)))
@@ -101,31 +100,17 @@
   :custom
   (org-attach-id-dir "~/notes/attach"))
 
-
-
-
-
-
-
-
 ;; ─── GPG / epa ─────────────────────────────────────────────
-;; loopback: GnuPG pide la passphrase a través del minibuffer de Emacs
-;; en vez de una ventana X/Qt separada. Funciona bien en Wayland + KDE.
 (use-package epa-file
   :config
   (setq epg-pinentry-mode 'loopback)
   (epa-file-enable))
-
-
-
-
 
 ;; ─── ox-reveal ─────────────────────────────────────────────
 (use-package ox-reveal
   :custom
   (org-reveal-title-slide nil)
   (org-reveal-root "https://cdn.jsdelivr.net/npm/reveal.js"))
-
 
 ;; ─── Org roam ──────────────────────────────────────────────
 (defvar org-roam-v2-ack t)
@@ -162,30 +147,28 @@
   :config
   (org-roam-db-autosync-mode))
 
-  ;; ─── Agenda dispatcher ───────────────────────────────────
-  (defhydra muere/agenda-dispatcher (:color teal :hint nil)
-    "Dispatcher > Notas"
-    ("<f12>" keyboard-escape-quit)
-    ("a" org-roam-buffer-toggle "display")
-    ("i" org-roam-node-insert "insertar link")
-    ("f" muere/org-roam-node-find-public "público")   ; ← nuevo
-    ("F" muere/org-roam-node-find-private "privado")  ; ← nuevo
-    ("t" org-roam-dailies-find-today "hoy")
-    ("T" org-roam-dailies-find-date "fecha")
-    ("p" org-publish "publicar"))
+;; ─── Agenda dispatcher ───────────────────────────────────
+(defhydra muere/agenda-dispatcher (:color teal)
+  "Dispatcher > Notas"
+  ("<f12>" keyboard-escape-quit "salir")
+  ("a" org-roam-buffer-toggle "display")
+  ("i" org-roam-node-insert "insertar link")
+  ("f" muere/org-roam-node-find-public "público")
+  ("F" muere/org-roam-node-find-private "privado")
+  ("t" org-roam-dailies-find-today "hoy")
+  ("T" org-roam-dailies-find-date "fecha")
+  ("p" org-publish "publicar"))
 
-    ;; Buscar solo notas públicas (sin tag "private")
-  (defun muere/org-roam-node-find-public ()
-    (interactive)
-    (org-roam-node-find
-     nil nil
-     (lambda (node)
-       (not (member "private" (org-roam-node-tags node))))))
+(defun muere/org-roam-node-find-public ()
+  (interactive)
+  (org-roam-node-find
+   nil nil
+   (lambda (node)
+     (not (member "private" (org-roam-node-tags node))))))
 
-  ;; Buscar todas las notas incluyendo privadas
-  (defun muere/org-roam-node-find-private ()
-    (interactive)
-    (org-roam-node-find))
+(defun muere/org-roam-node-find-private ()
+  (interactive)
+  (org-roam-node-find))
 
 (provide 'muere-org)
 ;;; muere-org.el ends here

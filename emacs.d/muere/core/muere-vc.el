@@ -5,7 +5,6 @@
 (require 'muere-package)
 (require 'muere-hydra)
 
-;; Deshabilitar el sistema de vc built-in de Emacs — usamos magit para todo
 (use-package vc
   :custom
   (vc-handled-backends nil)
@@ -15,37 +14,34 @@
 (use-package magit
   :custom
   (magit-no-message '("Turning on"))
-  ;; TODO: descomentar cuando tengamos muere-selector
   (magit-completing-read-function #'selector-completing-read)
   :config
 
   ;; ─── VC dispatcher ────────────────────────────────────────
-  (defhydra muere/vc-dispatcher (:color teal :hint nil)
+  (defhydra muere/vc-dispatcher (:color teal)
     "Dispatcher > Version Control"
-    ("<f12>" keyboard-escape-quit)
+    ("<f12>" keyboard-escape-quit "salir")
     ("v" magit-status "status")
     ("h" magit-log-buffer-file "history")
     ("l" magit-log-current "log")
     ("f" magit-log-buffer-file "file")
     ("d" (magit-diff-range "master") "diff")
     ("s" magit-checkout "switch")
-    ("S" magit-branch-and-checkout)
+    ("S" magit-branch-and-checkout "branch+switch")
     ("t" magit-stash-list "stash")
     ("b" magit-blame-addition "blame")
-    ("q" magit-blame-quit "quit-blame")
-    ("T" magit-stash-worktree)
+    ("q" magit-blame-quit "quit blame")
+    ("T" magit-stash-worktree "stash worktree")
     ("c" magit-commit-create "commit")
     ("p" magit-push-current-to-upstream "push")
     ("u" magit-pull-from-upstream "pull"))
 
-  ;; Reemplazar los keymaps de magit con keymaps vacíos para no pisar evil
   (setq
    magit-mode-map (make-keymap)
    magit-status-mode-map (make-keymap)
    magit-diff-mode-map (make-keymap)
    magit-stashes-mode-map (make-keymap))
 
-  ;; Bindings de magit en motion state (lcolonq style)
   (evil-define-key 'motion magit-mode-map
     (kbd "RET") #'magit-visit-thing
     (kbd "TAB") #'magit-section-cycle
@@ -59,7 +55,6 @@
     (kbd "zM")  #'magit-section-hide-children))
 
 ;; ─── with-editor ──────────────────────────────────────────
-;; Integración contextual para commits — w guarda, SPC cancela
 (use-package with-editor
   :config
   (defun muere/with-editor-setup ()

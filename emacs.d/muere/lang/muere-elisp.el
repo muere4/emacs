@@ -6,9 +6,9 @@
 (require 'muere-hydra)
 (require 'muere-lsp)
 
-(defhydra muere/ide-elisp (:color teal :hint nil)
+(defhydra muere/ide-elisp (:color teal)
   "Dispatcher > ELisp IDE"
-  ("<f12>" keyboard-escape-quit)
+  ("<f12>" keyboard-escape-quit "salir")
   ("e" eval-defun "eval defun")
   ("i" eval-buffer "eval buffer")
   ("r" ielm "repl"))
@@ -17,7 +17,6 @@
   "Configuración para programación en Emacs Lisp."
   (outline-minor-mode)
   (setq-local muere/contextual-ide #'muere/ide-elisp/body)
-  ;; K muestra ayuda con apropos en elisp
   (setq-local muere/contextual-lookup #'selector-apropos))
 
 (add-hook 'emacs-lisp-mode-hook #'muere/elisp-setup)

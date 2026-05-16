@@ -8,13 +8,12 @@
 
 (use-package lsp-haskell
   :config
-  ;; Ignorar directorios de build en el file watcher — sin esto lsp se vuelve lento
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\dist-newstyle$" t)
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\deps$" t)
 
-  (defhydra muere/ide-haskell (:color teal :hint nil)
+  (defhydra muere/ide-haskell (:color teal)
     "Dispatcher > Haskell IDE"
-    ("<f12>" keyboard-escape-quit)
+    ("<f12>" keyboard-escape-quit "salir")
     ("S" lsp-workspace-restart "restart lsp")
     ("i" lsp-execute-code-action "code action")
     ("e" flycheck-next-error "goto error")

@@ -18,9 +18,9 @@
 (use-package nix-mode
   :mode "\\.nix\\'"
   :config
-  (defhydra muere/ide-nix (:color teal :hint nil)
+  (defhydra muere/ide-nix (:color teal)
     "Dispatcher > Nix IDE"
-    ("<f12>" keyboard-escape-quit)
+    ("<f12>" keyboard-escape-quit "salir")
     ("r" muere/nixos-rebuild "rebuild")
     ("S" lsp-workspace-restart "restart lsp")
     ("D" xref-find-definitions "goto def")
@@ -29,7 +29,6 @@
   (defun muere/nix-setup ()
     "Configuración para programación en Nix."
     (setq-local muere/contextual-ide #'muere/ide-nix/body)
-    ;; nixd como LSP — está en modules/system/dev/nix.nix
     (lsp-deferred))
 
   (add-hook 'nix-mode-hook #'muere/nix-setup))
