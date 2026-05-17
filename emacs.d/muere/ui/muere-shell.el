@@ -64,12 +64,11 @@
   :custom
   (eshell-prompt-regexp (rx bol "In " (one-or-more anything) ":\n"))
   :config
-  (ef-themes-with-colors
-    (set-face-attribute 'eshell-prompt nil
-                        :foreground fg-main
-                        :background bg-alt
-                        :weight 'bold
-                        :extend t))
+  (set-face-attribute 'eshell-prompt nil
+                    :foreground "#f8f8f2"
+                    :background "#21222c"
+                    :weight 'bold
+                    :extend t)
 
   (defun muere/eshell-prompt ()
     "Prompt de eshell con directorio y rama de git."

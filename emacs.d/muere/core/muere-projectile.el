@@ -8,6 +8,8 @@
   :custom
   ;; Usar completing-read por defecto (lo sobreescribiremos con selector cuando esté)
   (projectile-completion-system 'default)
+  (projectile-known-projects-file "~/.local/share/emacs/projectile-bookmarks.eld")
+  (projectile-cache-file "~/.local/share/emacs/projectile.cache")
   :config
   (projectile-mode)
 

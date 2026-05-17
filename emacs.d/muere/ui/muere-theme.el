@@ -13,17 +13,28 @@
 (set-fringe-mode 12)
 
 (global-display-line-numbers-mode 1)
-(dolist (mode '(term-mode-hook shell-mode-hook eshell-mode-hook))
+(dolist (mode '(term-mode-hook
+                shell-mode-hook
+                eshell-mode-hook
+                pdf-view-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 ;; ─── Fuentes ───────────────────────────────────────────────
-;; Igual que lcolonq: set-frame-font Y set-face-font para asegurarse
-;; que aplica tanto al frame actual como a frames futuros
-(set-frame-font "Iosevka Comfy:pixelsize=20")
-(set-face-font 'default "Iosevka Comfy:pixelsize=20")
-(set-face-attribute 'line-number nil :height 1.2)
+(set-face-attribute 'default nil
+                    :font "FiraCode Nerd Font"
+                    :height 130
+                    :weight 'medium)
+(set-face-attribute 'variable-pitch nil
+                    :font "Roboto"
+                    :height 130
+                    :weight 'medium)
+(set-face-attribute 'fixed-pitch nil
+                    :font "FiraCode Nerd Font"
+                    :height 130
+                    :weight 'medium)
 
-;; Fuente para emojis — sin esto los emojis aparecen como cajitas
+(set-language-environment "UTF-8")
+
 (set-fontset-font
  t 'symbol
  (font-spec
@@ -34,14 +45,14 @@
   :slant 'normal))
 
 ;; ─── Tema ──────────────────────────────────────────────────
-(use-package ef-themes
+(use-package doom-themes
   :config
-  (ef-themes-select 'ef-duo-dark)
-
-  ;; ef-themes-with-colors nos da acceso a las variables de color del tema
-  ;; para usarlas en otras faces — así todo queda consistente
-  (ef-themes-with-colors
-    ;; Hacer que el borde entre ventanas y el fringe se mezclen con el fondo
+  (setq doom-themes-enable-bold t
+        doom-themes-enable-italic t)
+  (load-theme 'doom-dracula t)
+  (doom-themes-org-config)
+  (let ((bg-main "#282a36")
+        (bg-alt  "#21222c"))
     (set-face-attribute 'vertical-border nil
                         :foreground bg-alt
                         :background bg-alt)
@@ -49,9 +60,10 @@
                         :foreground bg-alt
                         :background bg-alt)))
 
+;; ─── Icons ─────────────────────────────────────────────────
+(use-package nerd-icons)
+
 ;; ─── Outshine ──────────────────────────────────────────────
-;; Mejora outline-minor-mode con folding y navegación
-;; lcolonq lo usa en colonq-theme, lo seguimos
 (use-package outshine
   :config
   (add-hook 'outline-minor-mode-hook 'outshine-mode))

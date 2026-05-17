@@ -11,6 +11,8 @@
 ;; ─── Yasnippet ─────────────────────────────────────────────
 ;; lsp-mode lo usa para completar snippets de código
 (use-package yasnippet
+  :custom
+  (yas-snippet-dirs '("~/.local/share/emacs/snippets"))
   :config
   (yas-reload-all)
   :hook (lsp-mode . yas-minor-mode))
@@ -18,6 +20,8 @@
 ;; ─── LSP Mode ──────────────────────────────────────────────
 (use-package lsp-mode
   :custom
+  (lsp-completion-provider :none)
+  (lsp-session-file "~/.local/share/emacs/.lsp-session-v1")
   (lsp-lens-enable nil)            ; sin lentes de código (conteo de refs, etc.)
   (lsp-prefer-flymake nil)         ; usar flycheck, no flymake
   (lsp-enable-snippet t)
@@ -43,8 +47,7 @@
   :hook (lsp-mode . lsp-ui-mode)
   :config
   ;; Hacer que el fondo del popup de doc coincida con el tema
-  (ef-themes-with-colors
-    (set-face-attribute 'lsp-ui-doc-background nil :background bg-main)))
+  (set-face-attribute 'lsp-ui-doc-background nil :background "#282a36"))
 
 (provide 'muere-lsp)
 ;;; muere-lsp.el ends here

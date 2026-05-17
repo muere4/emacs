@@ -3,6 +3,9 @@
 ;;; Code:
 
 (require 'muere-package)
+;; En muere-defaults.el
+(make-directory "~/.local/share/emacs" t)
+(make-directory "~/.local/share/emacs/snippets" t)
 
 (setq make-backup-files nil
       auto-save-default nil)

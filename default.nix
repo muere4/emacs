@@ -25,7 +25,9 @@ in
       enable = true;
       package = pkgs.emacs30-pgtk;
       extraPackages = epkgs: with epkgs; [
-        ef-themes
+        doom-themes
+        doom-modeline
+        nerd-icons
         evil
         undo-tree
         hydra

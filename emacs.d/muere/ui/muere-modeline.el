@@ -2,27 +2,24 @@
 ;;; Commentary:
 ;;; Code:
 
-(require 'muere-utility)
+(require 'muere-package)
 
-(defun muere/mode-line-render (left right)
-  "Renderiza el modeline con LEFT y RIGHT alineados."
-  (let* ((available-width (- (window-width) (length left) 3)))
-    (format (format " %%s %%%ds " available-width) left right)))
-
-(setq-default
- mode-line-format
- '((:eval
-    (muere/mode-line-render
-     (concat
-      (propertize (format-mode-line (buffer-name)) 'face 'bold)
-      " - "
-      (format-mode-line mode-name)
-      " - "
-      (muere/replace-home default-directory))
-     (format-mode-line
-      '(line-number-mode
-        (" line %l"
-         (column-number-mode " column %c"))))))))
+(use-package doom-modeline
+  :init
+  (doom-modeline-mode 1)
+  :config
+  (display-battery-mode 1)
+  (setq display-time-default-load-average nil
+        display-time-24hr-format t
+        display-time-day-and-date t)
+  (display-time-mode 1)
+  :custom
+  (doom-modeline-height 28)
+  (doom-modeline-bar-width 4)
+  (doom-modeline-icon t)
+  (doom-modeline-buffer-file-name-style 'truncate-with-project)
+  (doom-modeline-buffer-encoding nil)
+  (doom-modeline-minor-modes nil))
 
 (provide 'muere-modeline)
 ;;; muere-modeline.el ends here
